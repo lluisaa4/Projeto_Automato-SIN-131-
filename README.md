@@ -38,17 +38,15 @@ No Windows, a instalacao oficial do Python normalmente ja inclui Tkinter.
 Abra um terminal na pasta do projeto:
 
 ```powershell
-cd C:\Users\55349\Documents\Codex\2026-06-03\atue-como-um-engenheiro-de-software\outputs\sistema_teoria_computacao
+cd caminhoArquivo
 python -m compileall .
 ```
 
 Esse comando compila os arquivos `.py` para bytecode e aponta erros de sintaxe.
 
-Se o comando `python` nao estiver no PATH, use o Python empacotado do Codex:
-
 ```powershell
-cd C:\Users\55349\Documents\Codex\2026-06-03\atue-como-um-engenheiro-de-software\outputs\sistema_teoria_computacao
-& 'C:\Users\55349\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -m compileall .
+cd caminhoArquivo
+& 'caminhoArquivo\dependencies\python\python.exe' -m compileall .
 ```
 
 ## Como executar
@@ -57,12 +55,6 @@ Na mesma pasta:
 
 ```powershell
 python main.py
-```
-
-Alternativa com o Python empacotado do Codex:
-
-```powershell
-& 'C:\Users\55349\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' main.py
 ```
 
 A janela abre com exemplos preenchidos. Voce pode substituir os campos e usar os
