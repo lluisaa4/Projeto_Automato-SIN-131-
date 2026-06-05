@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 from typing import Optional
 
+from PIL import Image, ImageTk
+
 from backend.automata import (
     DFA,
     NFA,
@@ -9,6 +11,7 @@ from backend.automata import (
     format_minimization_mapping,
     format_nfa,
     format_simulation,
+    generate_graphviz_image,
 )
 from backend.errors import ValidationError
 from backend.grammar import RegularGrammar, format_regular_grammar
@@ -26,6 +29,7 @@ class TheoryApp(tk.Tk):
         self.current_dfa: Optional[DFA] = None
         self.current_minimized_dfa: Optional[DFA] = None
         self.current_grammar: Optional[RegularGrammar] = None
+        self._photo_image: Optional[ImageTk.PhotoImage] = None
 
         self._configure_style()
         self._build_interface()
@@ -51,12 +55,31 @@ class TheoryApp(tk.Tk):
         notebook.add(self.grammar_tab, text="Gramatica Regular")
         main_pane.add(notebook, weight=3)
 
-        output_frame = ttk.LabelFrame(main_pane, text="Resultado")
+        right_pane = ttk.PanedWindow(main_pane, orient=tk.VERTICAL)
+        main_pane.add(right_pane, weight=5)
+
+        output_frame = ttk.LabelFrame(right_pane, text="Resultado")
         output_frame.columnconfigure(0, weight=1)
         output_frame.rowconfigure(0, weight=1)
         self.output_text = scrolledtext.ScrolledText(output_frame, wrap=tk.WORD, font=("Consolas", 10))
         self.output_text.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
-        main_pane.add(output_frame, weight=4)
+        right_pane.add(output_frame, weight=2)
+
+        image_frame = ttk.LabelFrame(right_pane, text="Diagrama do Automato")
+        image_frame.columnconfigure(0, weight=1)
+        image_frame.rowconfigure(0, weight=1)
+        self._image_canvas = tk.Canvas(image_frame, background="#f8f8f8", highlightthickness=0)
+        self._image_canvas.grid(row=0, column=0, sticky="nsew")
+        self._img_scroll_x = ttk.Scrollbar(image_frame, orient=tk.HORIZONTAL, command=self._image_canvas.xview)
+        self._img_scroll_y = ttk.Scrollbar(image_frame, orient=tk.VERTICAL, command=self._image_canvas.yview)
+        self._image_canvas.configure(
+            xscrollcommand=self._img_scroll_x.set,
+            yscrollcommand=self._img_scroll_y.set,
+        )
+        self._img_scroll_x.grid(row=1, column=0, sticky="ew")
+        self._img_scroll_y.grid(row=0, column=1, sticky="ns")
+        self._canvas_image_id = None
+        right_pane.add(image_frame, weight=3)
 
         self._build_automata_tab()
         self._build_grammar_tab()
@@ -216,6 +239,44 @@ class TheoryApp(tk.Tk):
         self.output_text.insert("1.0", text)
         self.output_text.configure(state=tk.NORMAL)
 
+    def _update_automaton_image(self, automata_list, filename: str = "automaton") -> None:
+
+        try:
+            # Normalizar entrada: aceitar um unico automato ou lista de tuplas
+            if not isinstance(automata_list, list):
+                automata_list = [(automata_list, filename, "")]
+
+            images = []
+            for automaton, fname, title in automata_list:
+                path = generate_graphviz_image(automaton, filename=fname, title=title)
+                images.append(Image.open(path))
+
+            # Combinar imagens verticalmente com margem entre elas
+            margin = 20
+            total_width = max(img.width for img in images)
+            total_height = sum(img.height for img in images) + margin * (len(images) - 1)
+
+            combined = Image.new("RGB", (total_width, total_height), color=(248, 248, 248))
+            y_offset = 0
+            for img in images:
+                combined.paste(img, (0, y_offset))
+                y_offset += img.height + margin
+
+            self._photo_image = ImageTk.PhotoImage(combined)
+            self._image_canvas.delete("all")
+            self._canvas_image_id = self._image_canvas.create_image(
+                0, 0, anchor="nw", image=self._photo_image
+            )
+            self._image_canvas.configure(
+                scrollregion=(0, 0, combined.width, combined.height)
+            )
+        except Exception as exc:
+            self._image_canvas.delete("all")
+            self._image_canvas.create_text(
+                10, 10, anchor="nw", text=f"Erro ao gerar imagem:\n{exc}",
+                fill="red", font=("Consolas", 9)
+            )
+
     def _show_error(self, error: Exception) -> None:
         messagebox.showerror("Entrada invalida", str(error))
         self._write_output("Erro:\n" + str(error))
@@ -243,6 +304,10 @@ class TheoryApp(tk.Tk):
 
             output = format_nfa(nfa) + "\n\n" + format_dfa(dfa, "AFD equivalente")
             self._write_output(output)
+            self._update_automaton_image([
+                (nfa, "afn", "AFN"),
+                (dfa, "afd", "AFD equivalente"),
+            ])
             if show_success:
                 messagebox.showinfo("Conversao concluida", "AFN convertido para AFD.")
         except ValidationError as error:
@@ -268,6 +333,10 @@ class TheoryApp(tk.Tk):
                 + "\n\n"
                 + format_dfa(minimized, "AFD minimizado")
             )
+            self._update_automaton_image([
+                (dfa, "afd_antes", "AFD antes da minimizacao"),
+                (minimized, "afd_minimizado", "AFD minimizado"),
+            ])
             messagebox.showinfo("Minimizacao concluida", "AFD minimizado com sucesso.")
         except ValidationError as error:
             self._show_error(error)
@@ -294,6 +363,10 @@ class TheoryApp(tk.Tk):
                 + "\n\n"
                 + format_dfa(dfa, "AFD equivalente")
             )
+            self._update_automaton_image([
+                (nfa, "afn_gr", "AFN (da Gramatica)"),
+                (dfa, "afd_gr", "AFD equivalente"),
+            ])
             messagebox.showinfo("Conversao concluida", "Gramatica convertida para automato.")
         except ValidationError as error:
             self._show_error(error)

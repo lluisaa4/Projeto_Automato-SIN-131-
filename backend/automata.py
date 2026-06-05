@@ -1,5 +1,8 @@
+import os
 from dataclasses import dataclass
 from typing import Dict, FrozenSet, Iterable, List, Optional, Sequence, Set, Tuple
+
+import graphviz
 
 from .errors import ValidationError
 
@@ -434,3 +437,77 @@ def format_simulation(result: SimulationResult) -> str:
     else:
         lines.append("Palavra vazia: nenhum simbolo consumido.")
     return "\n".join(lines)
+
+
+def generate_graphviz_image(automaton, filename: str = "automaton", title: str = "") -> str:
+    graphviz_bin = r"C:\Program Files\Graphviz\bin"
+    if os.path.exists(graphviz_bin) and graphviz_bin not in os.environ.get("PATH", ""):
+        os.environ["PATH"] += os.pathsep + graphviz_bin
+
+    dot = graphviz.Digraph(format="png")
+    dot.attr(rankdir="LR", size="8,5", dpi="150")
+    dot.attr("node", fontname="Segoe UI", fontsize="10")
+    dot.attr("edge", fontname="Segoe UI", fontsize="10")
+
+    if title:
+        dot.attr(label=title, labelloc="t", fontname="Segoe UI", fontsize="14")
+
+    dot.node("empty_start", shape="point", width="0")
+
+    for state in sorted(automaton.states):
+        if state in automaton.final_states:
+            dot.node(
+                state,
+                shape="doublecircle",
+                style="filled",
+                fillcolor="#e6ffe6",
+                color="#00aa00",
+                penwidth="2"
+            )
+        elif state == automaton.initial_state:
+            dot.node(
+                state,
+                shape="circle",
+                style="filled",
+                fillcolor="#e6f2ff",
+                color="#0066cc",
+                penwidth="2"
+            )
+        else:
+            dot.node(
+                state,
+                shape="circle",
+                style="filled",
+                fillcolor="#f9f9f9",
+                color="#cccccc"
+            )
+
+    dot.edge("empty_start", automaton.initial_state, color="#0066cc", penwidth="1.5")
+
+    grouped_transitions = {}
+    for (source, symbol), targets in automaton.transitions.items():
+        if isinstance(targets, set):
+            target_list = list(targets)
+        else:
+            target_list = [targets]
+
+        for target in target_list:
+            key = (source, target)
+            sym_str = "ε" if symbol == "" else symbol
+            if key not in grouped_transitions:
+                grouped_transitions[key] = []
+            grouped_transitions[key].append(sym_str)
+
+    for (source, target), symbols in sorted(grouped_transitions.items()):
+        label = ", ".join(sorted(symbols))
+        dot.edge(source, target, label=label, color="#555555")
+
+    output_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "output_graphs"
+    )
+    os.makedirs(output_dir, exist_ok=True)
+
+    output_path = os.path.join(output_dir, filename)
+    rendered_path = dot.render(output_path, cleanup=True)
+    return rendered_path
