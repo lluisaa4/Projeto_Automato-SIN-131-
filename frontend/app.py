@@ -262,6 +262,17 @@ class TheoryApp(tk.Tk):
                 combined.paste(img, (0, y_offset))
                 y_offset += img.height + margin
 
+            # Reduz a imagem mantendo boa qualidade
+            scale = 0.7
+
+            combined = combined.resize(
+                (
+                    int(combined.width * scale),
+                    int(combined.height * scale)
+                ),
+                Image.Resampling.LANCZOS
+)
+
             self._photo_image = ImageTk.PhotoImage(combined)
             self._image_canvas.delete("all")
             self._canvas_image_id = self._image_canvas.create_image(

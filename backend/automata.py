@@ -445,9 +445,9 @@ def generate_graphviz_image(automaton, filename: str = "automaton", title: str =
         os.environ["PATH"] += os.pathsep + graphviz_bin
 
     dot = graphviz.Digraph(format="png")
-    dot.attr(rankdir="LR", size="8,5", dpi="150")
-    dot.attr("node", fontname="Segoe UI", fontsize="10")
-    dot.attr("edge", fontname="Segoe UI", fontsize="10")
+    dot.attr(rankdir="LR", size="8", dpi="125")
+    dot.attr("node", fontname="Segoe UI", fontsize="8")
+    dot.attr("edge", fontname="Segoe UI", fontsize="8")
 
     if title:
         dot.attr(label=title, labelloc="t", fontname="Segoe UI", fontsize="14")
@@ -460,8 +460,8 @@ def generate_graphviz_image(automaton, filename: str = "automaton", title: str =
                 state,
                 shape="doublecircle",
                 style="filled",
-                fillcolor="#e6ffe6",
-                color="#00aa00",
+                fillcolor="#d1fae5",
+                color="#059669",
                 penwidth="2"
             )
         elif state == automaton.initial_state:
@@ -469,8 +469,8 @@ def generate_graphviz_image(automaton, filename: str = "automaton", title: str =
                 state,
                 shape="circle",
                 style="filled",
-                fillcolor="#e6f2ff",
-                color="#0066cc",
+                fillcolor="#dbeafe",
+                color="#2563eb",
                 penwidth="2"
             )
         else:
@@ -478,11 +478,11 @@ def generate_graphviz_image(automaton, filename: str = "automaton", title: str =
                 state,
                 shape="circle",
                 style="filled",
-                fillcolor="#f9f9f9",
-                color="#cccccc"
+                fillcolor="#f3f4f6",
+                color="#6b7280"
             )
 
-    dot.edge("empty_start", automaton.initial_state, color="#0066cc", penwidth="1.5")
+    dot.edge("empty_start", automaton.initial_state, color="#9ca3af", penwidth="1.5")
 
     grouped_transitions = {}
     for (source, symbol), targets in automaton.transitions.items():
