@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import Optional
 
 from PIL import Image, ImageTk
@@ -30,6 +30,7 @@ class TheoryApp(tk.Tk):
         self.current_minimized_dfa: Optional[DFA] = None
         self.current_grammar: Optional[RegularGrammar] = None
         self._photo_image: Optional[ImageTk.PhotoImage] = None
+        self._display_image: Optional[Image.Image] = None
 
         self._configure_style()
         self._build_interface()
@@ -79,6 +80,13 @@ class TheoryApp(tk.Tk):
         self._img_scroll_x.grid(row=1, column=0, sticky="ew")
         self._img_scroll_y.grid(row=0, column=1, sticky="ns")
         self._canvas_image_id = None
+        save_image_frame = ttk.Frame(image_frame)
+        save_image_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=8, pady=(0, 8))
+        ttk.Button(
+            save_image_frame,
+            text="Salvar Imagem",
+            command=self.save_automaton_image,
+        ).pack(side=tk.LEFT)
         right_pane.add(image_frame, weight=3)
 
         self._build_automata_tab()
@@ -273,6 +281,7 @@ class TheoryApp(tk.Tk):
                 Image.Resampling.LANCZOS
 )
 
+            self._display_image = combined.copy()
             self._photo_image = ImageTk.PhotoImage(combined)
             self._image_canvas.delete("all")
             self._canvas_image_id = self._image_canvas.create_image(
@@ -282,11 +291,35 @@ class TheoryApp(tk.Tk):
                 scrollregion=(0, 0, combined.width, combined.height)
             )
         except Exception as exc:
+            self._display_image = None
             self._image_canvas.delete("all")
             self._image_canvas.create_text(
                 10, 10, anchor="nw", text=f"Erro ao gerar imagem:\n{exc}",
                 fill="red", font=("Consolas", 9)
             )
+
+    def save_automaton_image(self) -> None:
+        if self._display_image is None:
+            messagebox.showwarning(
+                "Sem imagem",
+                "Nenhum diagrama disponivel para salvar.\n"
+                "Gere um automato antes de salvar a imagem.",
+            )
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            title="Salvar imagem do automato",
+            defaultextension=".png",
+            filetypes=[("PNG", "*.png"), ("Todos os arquivos", "*.*")],
+        )
+        if not file_path:
+            return
+
+        try:
+            self._display_image.save(file_path, format="PNG")
+            messagebox.showinfo("Sucesso", f"Imagem salva em:\n{file_path}")
+        except OSError as exc:
+            messagebox.showerror("Erro ao salvar", f"Nao foi possivel salvar a imagem:\n{exc}")
 
     def _show_error(self, error: Exception) -> None:
         messagebox.showerror("Entrada invalida", str(error))
